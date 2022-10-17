@@ -1,0 +1,142 @@
+Mogodeanu_Claudiu_311CC_tema3_SD
+
+! Tema contine fisiere dupa cum urmeaza:
+- main.c in care sunt functiile ce au ca scop rezolvarea directa a task-urilor
+- README si Makefile
+- 4 grupari de .c-uri si .h-uri pt: heap, lists, queue si stack
+
+!! Daca va exista vreo problema pe vmchecker, pe local primesc PASS la toate testele, insa
+ultimul test ruleaza putin mai greu (din cauza abordarii mele de a lua toate cazurile posibile).
+Nu primesc timeout nici pe local si, din cate am incercat, nici pe vmchecker.
+Dar, daca exista vreo problema, tema se compileaza cu:
+gcc -o tema3 main.c heap.c stack.c lists.c queue.c -g -Wall -lm -std=c99
+
+!!! Principiile de lucru pt algoritmii dijkstra si tarjan sunt cele 
+din laboratoarele de la grupa 311CC, insa implementarea este originala:
+minheap binar sub forma de arbore, cu noduri adaugate dupa biti;
+Parsare prin functii speciale a listelor de adiacenta si a vecinilor in sine;
+Retinere in plus de parinti la dijkstra si de noduri din ctc la tarjan;
+Crearea unui vector alocat dinamic de liste, fiecare lista avand cate o componenta tare conexa.
+Laboratorul 10 (Dijkstra cu heap) si laboratorul 9 (tarjan_ctc), adaptate destul de mult
+pentru cerintele curente.
+
+README-ul si liniile de cod sunt capped la 100 de caractere.
+De aceea, am mai impartit unele linii de cod pe mai multe linii, cu o identare potrivita.
+Prin identare, eu zic ca se intelege ceea ce se dorea a fi facut.
+Timp de implementare: ~10-11h (cu tot cu construitul heap-ului, stack-ului etc)
+
+Fisisere si structuri aditionale:
+
+1.  heap.c
+Heapul este construit cu arbore binar si este de tip minheap.
+Heapul este ordonat dupa cost.
+Structura unui heapnode este: valoare (vertex-ul respectiv), cost (float) si cate un pointer catre
+fiu drept, fiu stang si parinte.
+Pentru a adauga un nod in heap (mai exact pt a gasi direct pozitia unde se introduce nod),
+am facut o schema de transformare a nr de noduri in baza 2 si, in functie de biti, am parcurs arborele.
+(0 merge in stanga, 1 in dreapta)
+Ne bazam pe faptul ca nu vom avea un heap cu mai mult de 8 niveluri.
+insert -> adauga nod in heap
+heapify -> reface recursiv minheapul dupa ce am inlocuit radacina cu ultimul nod
+to_up -> cauta locul unei valori in minheap si urca nodul adaugat la final
+remove_root -> intoarce index-ul nodului cu cost minim si refce minheapul
+search_pre_order -> cauta un nod prin heap si ii actualizeaza distanta minima
+
+2. & 3. stack.c si queue.c
+Stiva este folosita pt algoritmul lui tarjan si contine doar operatiile basic.
+stacknode-ul contine doar valoarea (vertex-ul) in sine, fara cost. Vrem doar sa aflam ctc-urile.
+Operatiile folosite sunt doar cele de add si pop + alocare / eliberare memorie.
+
+Coada este folosita la task 3 si queuenode-urile retin valoarea(nodul), masca actuala si costul
+pana in momentul respectiv. Pe langa operatiile clasice de add,pop si memorie, exista si functia
+check_in_q care verifica daca o pereche de forma {valoare, masca exista in coada}.
+
+4. lists.c
+Avand in vedere ca vecinii sunt reprezentati prin lista de adiacenta, a fost nevoie de mai multe
+functii de manipulare a listelor. Un nod contine doar valoarea (nodul/vertexul) si costul muchiei
+pana acolo. Lista este, de fapt, reprezentata tot printr-un pointer la un nod.
+Exista functii clasice: init, free, de calculat lungimea, de adaugat la inceput si la final.
+in_list -> returneaza indexul unei valori din coada sau -1 daca nu exista.
+Dar, pt a ne fi mai usor la aflatul vecinilor, am implementat si functii care intorc nodul,
+costul sau pointerul de la un anumit indice din lista.
+
+Functii aditionale: cautare printr-un array de int-uri si sortarea lui (qsort), cu functie
+de comparare pe int.
+
+Graful: este definit prin nr de noduri si printr-un vector de liste de adiacenta.
+Fiecare nod va avea vecinii si costul catre vecini in propria lista.
+
+Task 1:
+
+Am implementat algoritmul lui Dijkstra cu minheap, dar care retine si "parintele pt fiecare nod".
+Parintele este nodul din care s-a dus muchia pt a construi distanta minima.
+Punem nodul sursa in heap, apoi scoatem mereu varful heapului (nodul prioritar) si vedem daca
+putem minimiza distante. Daca vecinii nu au fost vizitati, ii punem in heap cu distanta noua, altfel
+cautam vecinii prin heap si le actualizam distantele. 
+In momentul in care actualizam o distanta, setam ca parinte nou al vecinului nodul curent.
+Afisam distanta pana la destinatie si apoi parcurgem recursiv vectorul de parinti si punem nodurile
+intr-o lista go_through_list. Functia shortest_path se ocupa de acest lucru. Costul total al traseului
+este returnat de functie si adaugat in total_sum. In cazul fiecarei destinatii, se apeleaza dijkstra
+de 2 ori: de la depozit la destinatie si invers. Costurile se aduna la toal_sum.
+Dupa fiecare parcurgere se printeaza si se elibereaza go_through_list-ul.
+
+Task 2:
+
+Task 2 este un fel de tarjan (cu stiva) cu extra steps.
+components va fi un vector de liste. Fiecare lista va contine nodurile dintr-o singura ctc.
+Vectorul va fi de dimensiune ctc si il vom relloca la fiecare pas.
+in_stack, discovery si low_link sunt vectori, care indica o anumita data pt fiecare element.:
+in_stack -> boolean, daca un element se afla in stiva la un moment dat.
+discovery -> vedem daca un element apartine deja vreunei componente (-1, nu a fost descoperit)
+low_link -> cel mai mic nod ca index spre in care se poate ajunge
+La inceput vom spune ca niciun element nu este in stiva (facem calloc pe in_stack)
+Pt ca nu vrem sa avem depozite in componentele noastre conexe, le marcam din start ca vizitate.
+
+Se apleaza tarjan pt nod nedescoperit.
+In tarjan se construieste cate o componenta conexa. Punem de la npdul "sursa" vecinii in stiva
+si se verifica daca putem modifica low_linkul. Se face tarjan recursiv.
+La final, la intoarcerea in apelul tarjanului original (pt un nod oarecare) se verifica daca este
+pivotul pt propria componenta (if(low_link[nod]==discovery[nod])). Daca da, se formeaza componenta
+respectiva, scotand pe rand toate nodurile pana la el inclusiv.
+Incrementam ctc-ul si dimensiunea vectorului de liste 
+si formam lista cu elemente din componenta conexa respectiva.
+
+La intoarcerea in e2, sortam fiecare lista crescator,
+iar la final sortam vectorul dupa primul element din fiecare lista.
+Afisam listele si eliberam memoria.
+
+Task 3:
+
+Formam un vector nodes_e3 cu nodurile din zona pe primele k pozitii, iar apoi pe urmatoarele
+d pozitii punem toate depozitele. Sortam nodurile din nodes_e3 pt ca atunci cand il parcurgem,
+sa stim ca mergem de la nod mic la mare.
+Formam un subgraf cu nodurile din fiecare zona si cu toate depozitele (functia generate_new_graph).
+Adica facem noi liste de adiacenta pt vecini si shiftam toate nodurile (indiferent de val initiala)
+sa fie de la 0 la k-1 (respectiv k+d-1) pt a fi mai usor de umblat cu masca de biti.
+
+Functia principala este "suma_componenta" (la urma urmei zonele sunt componentele tare conexe).
+analizam toate cazurile posibile (sa plece si sa se intoarca in toate depozitele),
+pe toate nodurile posibile (atat la dus, cat si la intors).
+cum luam toate cazurile, o sa retinem costul momentan in case_sum, iar suma finala in total_sum.
+
+Intai luam toate depozitele pe rand, apoi fiecare sursa pt fiecare depozit, apoi fiecare
+destinatie posibila in cadrul fiecarei surse.
+La case_sum punem intai costul de la depozit la sursa, apoi scadem si adunam costurile
+pt fiecare destinatie in parte. Suma de la sursa la destinatie este aflata cu dijkstra cu masti.
+Daca am gasit o suma suficient de mica, o salvam.
+
+modified_dijkstra:
+am implementat algoritmul cu cozi si masti. Vom avea 2 cozi: una cu elemente care sunt de interes
+actual si una cu toate starile pe care le-am mai vizitat.
+Se parcurge fiecare nod al subgrafului g, iar masca ce decide daca s-au
+vizitat toate nodurile trebuinicoase este calculata doar pe baza nedepozitelor.
+total_mask reprezinta faptul ca exista biti de 1 pe toata portiunea de nedepozite.
+Le-am shiftat in new_graph pt a avea indici de la 0 la k-1.
+Punem perechi valoare<->masca<->cost_momentan succesiv in coada.
+Verificam daca este stare finala sau daca a mai fost in coada. Daca da, actualizam costul.
+Altfel, punem vecinii in coada cu masti noi si costuri crescute.
+Facem asta pana coada e goala. Returnam cel mai mic cost de stare finala.
+
+main:
+parsam inputul, cream graful initial (cu liste de adiacenta) si lansam in executie task-urile.
+La final eliberam memoria.
